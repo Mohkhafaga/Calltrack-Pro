@@ -69,7 +69,7 @@ const Call = sequelize.define('Call', {
   },
   // Follow-up tracking
   followUpStatus: {
-    type: DataTypes.ENUM('not_required', 'pending', 'callback_done_answered', 'callback_done_no_answer', 'retry_later', 'closed'),
+    type: DataTypes.ENUM('not_required', 'pending', 'in_progress', 'callback_done_answered', 'callback_done_no_answer', 'retry_later', 'closed'),
     defaultValue: 'pending',
     field: 'follow_up_status'
   },

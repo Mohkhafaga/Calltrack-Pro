@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getDashboardStats, getAlerts } from '../services/api';
 import { FiPhone, FiPhoneIncoming, FiPhoneMissed, FiPhoneOff, FiCheckCircle, FiClock, FiAlertTriangle, FiActivity } from 'react-icons/fi';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, Cell, PieChart, Pie } from 'recharts';
 
 const DATE_FILTERS = [
   { label: 'اليوم', key: 'today' },
@@ -30,13 +30,14 @@ const getDateRange = (key) => {
   }
 };
 
+const COLORS = ['#1976d2', '#388e3c', '#f57c00', '#d32f2f', '#7b1fa2', '#00796b', '#c2185b', '#455a64'];
+
 const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [alerts, setAlerts] = useState({ count: 0, alerts: [] });
   const [activeFilter, setActiveFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [queue, setQueue] = useState('');
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -44,7 +45,6 @@ const DashboardPage = () => {
       const params = {};
       if (dateFrom) params.dateFrom = dateFrom;
       if (dateTo) params.dateTo = dateTo;
-      if (queue) params.queue = queue;
 
       const [statsRes, alertsRes] = await Promise.all([
         getDashboardStats(params),
@@ -57,7 +57,7 @@ const DashboardPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, queue]);
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     fetchData();
@@ -72,13 +72,14 @@ const DashboardPage = () => {
     setDateTo(range.to);
   };
 
-  const COLORS = ['#388e3c', '#d32f2f', '#f57c00', '#283593', '#6a1b9a'];
-
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>جاري التحميل...</div>;
 
-  const pieData = stats?.callsByQueue?.map(q => ({
+  const queueData = stats?.callsByQueue?.map((q, i) => ({
     name: q.queueName || 'غير محدد',
-    value: parseInt(q.total)
+    value: parseInt(q.total),
+    answered: parseInt(q.answered) || 0,
+    missed: parseInt(q.missed) || 0,
+    fill: COLORS[i % COLORS.length]
   })) || [];
 
   const hourData = stats?.callsByHour?.map(h => ({
@@ -157,28 +158,39 @@ const DashboardPage = () => {
       <div className="charts-grid">
         <div className="chart-card">
           <h3>المكالمات حسب الساعة</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={hourData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="hour" />
-              <YAxis />
-              <Tooltip />
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={hourData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="hour" tick={{ fontSize: 11 }} interval={1} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip formatter={(v) => [v, 'مكالمات']} />
               <Bar dataKey="total" fill="#1976d2" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
         <div className="chart-card">
           <h3>المكالمات حسب الكيو</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
-                {pieData.map((entry, index) => (
-                  <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <ResponsiveContainer width="50%" height={280}>
+              <PieChart>
+                <Pie data={queueData} cx="50%" cy="50%" outerRadius={100} dataKey="value" stroke="none">
+                  {queueData.map((entry, index) => (
+                    <Cell key={index} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v) => [v, 'مكالمات']} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div style={{ width: '50%', fontSize: 13 }}>
+              {queueData.map((q, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 12, height: 12, borderRadius: 3, background: q.fill, flexShrink: 0 }}></div>
+                  <span style={{ flex: 1 }}>{q.name}</span>
+                  <strong>{q.value}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
