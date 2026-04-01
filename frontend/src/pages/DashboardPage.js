@@ -3,9 +3,37 @@ import { getDashboardStats, getAlerts } from '../services/api';
 import { FiPhone, FiPhoneIncoming, FiPhoneMissed, FiPhoneOff, FiCheckCircle, FiClock, FiAlertTriangle, FiActivity } from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
+const DATE_FILTERS = [
+  { label: 'اليوم', key: 'today' },
+  { label: 'أمس', key: 'yesterday' },
+  { label: 'آخر 7 أيام', key: '7days' },
+  { label: 'هذا الشهر', key: 'month' },
+  { label: 'الكل', key: 'all' },
+];
+
+const getDateRange = (key) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  switch (key) {
+    case 'today':
+      return { from: today.toISOString(), to: new Date(today.getTime() + 86400000).toISOString() };
+    case 'yesterday': {
+      const y = new Date(today.getTime() - 86400000);
+      return { from: y.toISOString(), to: today.toISOString() };
+    }
+    case '7days':
+      return { from: new Date(today.getTime() - 7 * 86400000).toISOString(), to: new Date(today.getTime() + 86400000).toISOString() };
+    case 'month':
+      return { from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), to: new Date(today.getTime() + 86400000).toISOString() };
+    default:
+      return { from: '', to: '' };
+  }
+};
+
 const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [alerts, setAlerts] = useState({ count: 0, alerts: [] });
+  const [activeFilter, setActiveFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [queue, setQueue] = useState('');
@@ -37,16 +65,14 @@ const DashboardPage = () => {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  const COLORS = ['#388e3c', '#d32f2f', '#f57c00', '#283593', '#6a1b9a'];
-
-  const statusLabels = {
-    answered: 'مردود عليها',
-    missed_in_queue: 'فائتة في الكيو',
-    missed_before_queue: 'فائتة قبل الكيو',
-    abandoned: 'مغلقة من العميل',
-    after_hours: 'خارج الدوام',
-    voicemail: 'بريد صوتي'
+  const handleDateFilter = (key) => {
+    setActiveFilter(key);
+    const range = getDateRange(key);
+    setDateFrom(range.from);
+    setDateTo(range.to);
   };
+
+  const COLORS = ['#388e3c', '#d32f2f', '#f57c00', '#283593', '#6a1b9a'];
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center' }}>جاري التحميل...</div>;
 
@@ -71,11 +97,18 @@ const DashboardPage = () => {
 
       <div className="page-header">
         <h1 className="page-title">لوحة التحكم</h1>
-        <div className="date-range">
-          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-          <span>إلى</span>
-          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        {DATE_FILTERS.map(f => (
+          <button
+            key={f.key}
+            className={`btn btn-sm ${activeFilter === f.key ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => handleDateFilter(f.key)}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       <div className="stats-grid">

@@ -25,7 +25,7 @@ class CDRSyncService {
       whereClause = 'AND cf.first_started > $1';
       params.push(this.lastSyncTime);
     } else {
-      whereClause = "AND cf.first_started > NOW() - INTERVAL '30 days'";
+      whereClause = "AND cf.first_started > NOW() - INTERVAL '365 days'";
     }
 
     // Get one record per call_history_id with the FINAL outcome

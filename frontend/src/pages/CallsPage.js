@@ -5,6 +5,33 @@ import { FiPhone, FiSearch, FiEye, FiRefreshCw } from 'react-icons/fi';
 import CallDetailModal from '../components/CallDetailModal';
 import FollowUpModal from '../components/FollowUpModal';
 
+const DATE_FILTERS = [
+  { label: 'اليوم', key: 'today' },
+  { label: 'أمس', key: 'yesterday' },
+  { label: 'آخر 7 أيام', key: '7days' },
+  { label: 'هذا الشهر', key: 'month' },
+  { label: 'الكل', key: 'all' },
+];
+
+const getDateRange = (key) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  switch (key) {
+    case 'today':
+      return { from: today.toISOString(), to: new Date(today.getTime() + 86400000).toISOString() };
+    case 'yesterday': {
+      const y = new Date(today.getTime() - 86400000);
+      return { from: y.toISOString(), to: today.toISOString() };
+    }
+    case '7days':
+      return { from: new Date(today.getTime() - 7 * 86400000).toISOString(), to: new Date(today.getTime() + 86400000).toISOString() };
+    case 'month':
+      return { from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), to: new Date(today.getTime() + 86400000).toISOString() };
+    default:
+      return { from: '', to: '' };
+  }
+};
+
 const CallsPage = () => {
   const { user } = useAuth();
   const [calls, setCalls] = useState([]);
@@ -15,8 +42,8 @@ const CallsPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCall, setSelectedCall] = useState(null);
   const [followUpCall, setFollowUpCall] = useState(null);
+  const [activeFilter, setActiveFilter] = useState('all');
 
-  // Filters
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [followUpStatus, setFollowUpStatus] = useState('');
@@ -56,6 +83,14 @@ const CallsPage = () => {
     getQueues().then(res => setQueues(res.data)).catch(() => {});
   }, []);
 
+  const handleDateFilter = (key) => {
+    setActiveFilter(key);
+    const range = getDateRange(key);
+    setDateFrom(range.from);
+    setDateTo(range.to);
+    setPage(1);
+  };
+
   const handleFollowUpSubmit = async (callId, data) => {
     try {
       await updateFollowUp(callId, data);
@@ -76,7 +111,7 @@ const CallsPage = () => {
     const map = {
       answered: { label: 'مردود عليها', cls: 'badge-answered' },
       missed_in_queue: { label: 'فائتة في الكيو', cls: 'badge-missed' },
-      missed_before_queue: { label: 'فائتة قبل الكيو', cls: 'badge-missed' },
+      missed_before_queue: { label: 'أغلق أثناء رسالة الترحيب', cls: 'badge-missed' },
       abandoned: { label: 'مغلقة من العميل', cls: 'badge-abandoned' },
       after_hours: { label: 'خارج الدوام', cls: 'badge-after-hours' },
       voicemail: { label: 'بريد صوتي', cls: 'badge-voicemail' }
@@ -119,6 +154,18 @@ const CallsPage = () => {
         </div>
       </div>
 
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        {DATE_FILTERS.map(f => (
+          <button
+            key={f.key}
+            className={`btn btn-sm ${activeFilter === f.key ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => handleDateFilter(f.key)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       <div className="table-container">
         <div className="table-header">
           <div className="table-filters">
@@ -136,7 +183,7 @@ const CallsPage = () => {
               <option value="">كل الحالات</option>
               <option value="answered">مردود عليها</option>
               <option value="missed_in_queue">فائتة في الكيو</option>
-              <option value="missed_before_queue">فائتة قبل الكيو</option>
+              <option value="missed_before_queue">أغلق أثناء رسالة الترحيب</option>
               <option value="abandoned">مغلقة من العميل</option>
               <option value="after_hours">خارج الدوام</option>
               <option value="voicemail">بريد صوتي</option>
@@ -154,9 +201,6 @@ const CallsPage = () => {
               <option value="">كل الكيوهات</option>
               {queues.map(q => <option key={q} value={q}>{q}</option>)}
             </select>
-            <input type="date" className="filter-input" style={{ width: 130 }} value={dateFrom} onChange={(e) => { setDateFrom(e.target.value); setPage(1); }} />
-            <span style={{ fontSize: 13, color: '#666' }}>إلى</span>
-            <input type="date" className="filter-input" style={{ width: 130 }} value={dateTo} onChange={(e) => { setDateTo(e.target.value); setPage(1); }} />
           </div>
         </div>
 
@@ -192,12 +236,12 @@ const CallsPage = () => {
                         <td>{call.callerName || '-'}</td>
                         <td><span className="badge" style={{ background: '#e3f2fd', color: '#1565c0' }}>{call.queueName || call.callSource}</span></td>
                         <td style={{ textAlign: 'center' }}>{call.totalInboundAttempts}</td>
-                        <td style={{ fontSize: 12 }}>{formatDate(call.lastCallAt)}</td>
+                        <td style={{ fontSize: 13 }}>{formatDate(call.lastCallAt)}</td>
                         <td>{getStatusBadge(call.lastCallStatus)}</td>
                         <td>{call.answeredBy || '-'}</td>
                         <td>{getFollowUpBadge(call.followUpStatus, call.autoDetectedCallback)}</td>
                         <td>{call.followUpBy || '-'}</td>
-                        <td style={{ fontSize: 12 }}>{formatDate(call.followUpAt)}</td>
+                        <td style={{ fontSize: 13 }}>{formatDate(call.followUpAt)}</td>
                         <td>
                           {call.slaMet !== null && (
                             <span className={call.slaMet ? 'sla-met' : 'sla-missed'}>

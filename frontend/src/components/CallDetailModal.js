@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getCallDetails } from '../services/api';
-import { FiPhone, FiPhoneIncoming, FiPhoneOutgoing } from 'react-icons/fi';
+import { FiPhoneIncoming, FiPhoneOutgoing, FiX } from 'react-icons/fi';
 
 const CallDetailModal = ({ call, onClose }) => {
   const [details, setDetails] = useState(null);
@@ -30,7 +30,7 @@ const CallDetailModal = ({ call, onClose }) => {
     const map = {
       answered: 'مردود عليها',
       missed: 'فائتة',
-      abandoned: 'مغلقة',
+      abandoned: 'مغلقة من العميل',
       voicemail: 'بريد صوتي',
       after_hours: 'خارج الدوام',
       no_answer: 'لم يرد'
@@ -38,58 +38,89 @@ const CallDetailModal = ({ call, onClose }) => {
     return map[s] || s;
   };
 
+  const getFollowUpLabel = (s) => {
+    const map = {
+      not_required: 'لا يلزم',
+      pending: 'لم تتم',
+      callback_done_answered: 'تم الرد',
+      callback_done_no_answer: 'لم يرد',
+      retry_later: 'إعادة محاولة',
+      closed: 'مغلقة'
+    };
+    return map[s] || s;
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 700 }}>
-        <div className="modal-header">
-          <h2 className="modal-title">تفاصيل المكالمة — {call.callerNumber}</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
+      <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 700, position: 'relative', paddingTop: 60 }}>
+        
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          background: 'white',
+          zIndex: 10,
+          padding: '16px 24px',
+          borderBottom: '1px solid #eee',
+          marginTop: -60,
+          marginRight: -24,
+          marginLeft: -24,
+          borderRadius: '16px 16px 0 0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>تفاصيل المكالمة — {call.callerNumber}</h2>
+          <button onClick={onClose} style={{
+            background: '#f5f5f5',
+            border: 'none',
+            borderRadius: '50%',
+            width: 36,
+            height: 36,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontSize: 18
+          }}>
+            <FiX />
+          </button>
         </div>
 
         {loading ? (
           <div style={{ padding: 20, textAlign: 'center' }}>جاري التحميل...</div>
         ) : (
           <>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-              <div>
-                <strong>اسم العميل:</strong> {details?.callerName || 'غير معروف'}
-              </div>
-              <div>
-                <strong>الكيو:</strong> {details?.queueName || '-'}
-              </div>
-              <div>
-                <strong>عدد المحاولات:</strong> {details?.totalInboundAttempts}
-              </div>
-              <div>
-                <strong>أول اتصال:</strong> {formatDate(details?.firstCallAt)}
-              </div>
-              <div>
-                <strong>آخر اتصال:</strong> {formatDate(details?.lastCallAt)}
-              </div>
-              <div>
-                <strong>حالة المتابعة:</strong> {details?.followUpBy ? `${details.followUpBy} — ${formatDate(details.followUpAt)}` : 'لم تتم'}
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24, marginTop: 16 }}>
+              <div><strong>اسم العميل:</strong> {details?.callerName || 'غير معروف'}</div>
+              <div><strong>الكيو:</strong> {details?.queueName || '-'}</div>
+              <div><strong>عدد المحاولات:</strong> {details?.totalInboundAttempts}</div>
+              <div><strong>أول اتصال:</strong> {formatDate(details?.firstCallAt)}</div>
+              <div><strong>آخر اتصال:</strong> {formatDate(details?.lastCallAt)}</div>
+              <div><strong>حالة المتابعة:</strong> {getFollowUpLabel(details?.followUpStatus)}</div>
+              {details?.followUpBy && (
+                <div><strong>متابعة بواسطة:</strong> {details.followUpBy} — {formatDate(details.followUpAt)}</div>
+              )}
               {details?.followUpNote && (
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <strong>ملاحظة:</strong> {details.followUpNote}
-                </div>
+                <div style={{ gridColumn: '1 / -1' }}><strong>ملاحظة:</strong> {details.followUpNote}</div>
               )}
             </div>
 
-            <h3 style={{ marginBottom: 12, fontSize: 15 }}>سجل المكالمات</h3>
+            <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 700 }}>سجل المكالمات</h3>
             <div className="timeline">
               {details?.history?.map((h, i) => (
                 <div key={i} className={`timeline-item ${h.direction}`}>
                   <div style={{ marginTop: 2 }}>
                     {h.direction === 'inbound' ? (
-                      <FiPhoneIncoming color="#1976d2" size={18} />
+                      <FiPhoneIncoming color="#1976d2" size={20} />
                     ) : (
-                      <FiPhoneOutgoing color="#388e3c" size={18} />
+                      <FiPhoneOutgoing color="#388e3c" size={20} />
                     )}
                   </div>
                   <div className="timeline-content">
-                    <div className="timeline-time">{formatDate(h.startedAt)}</div>
-                    <div className="timeline-detail">
+                    <div style={{ fontSize: 15, fontWeight: 500, color: '#333', marginBottom: 4 }}>
+                      {formatDate(h.startedAt)}
+                    </div>
+                    <div style={{ fontSize: 14, color: '#555' }}>
                       <strong>{h.direction === 'inbound' ? 'وارد' : 'صادر'}</strong>
                       {' — '}
                       {getStatusLabel(h.status)}
@@ -97,7 +128,7 @@ const CallDetailModal = ({ call, onClose }) => {
                       {h.duration > 0 && ` — ${Math.floor(h.duration / 60)}:${String(h.duration % 60).padStart(2, '0')}`}
                     </div>
                     {h.queueName && (
-                      <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+                      <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
                         الكيو: {h.queueName}
                       </div>
                     )}
