@@ -163,6 +163,19 @@ const CallsPage = () => {
         <h1 className="page-title">المكالمات الموحّدة</h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span style={{ fontSize: 13, color: '#666' }}>الإجمالي: {total}</span>
+          <button className="btn btn-success btn-sm" onClick={() => {
+            const params = new URLSearchParams();
+            if (dateFrom) params.set('dateFrom', dateFrom);
+            if (dateTo) params.set('dateTo', dateTo);
+            if (queue) params.set('queue', queue);
+            if (status) params.set('status', status);
+            if (followUpStatus) params.set('followUpStatus', followUpStatus);
+            if (search) params.set('search', search);
+            const token = localStorage.getItem('token');
+            window.open(`/api/calls/export/csv?${params.toString()}&token=${token}`, '_blank');
+          }}>
+            تصدير Excel
+          </button>
           <button className="btn btn-outline btn-sm" onClick={async () => {
             try { await fetch('/api/sync', { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }); } catch(e) {}
             fetchCalls();

@@ -201,7 +201,19 @@ router.get('/stats/dashboard', authenticate, async (req, res) => {
 });
 
 // Export calls (admin only)
-router.get('/export/csv', authenticate, requireAdmin, async (req, res) => {
+router.get('/export/csv', async (req, res) => {
+  if (req.query.token) {
+    req.headers.authorization = `Bearer ${req.query.token}`;
+  }
+  const jwt = require('jsonwebtoken');
+  const User = require('../models/User');
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Auth required' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findByPk(decoded.id);
+    if (!user || user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  } catch(e) { return res.status(401).json({ error: 'Invalid token' }); }
   try {
     const { dateFrom, dateTo, queue, followUpStatus } = req.query;
     const where = {};
