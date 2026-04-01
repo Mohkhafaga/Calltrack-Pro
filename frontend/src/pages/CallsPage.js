@@ -163,7 +163,10 @@ const CallsPage = () => {
         <h1 className="page-title">المكالمات الموحّدة</h1>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span style={{ fontSize: 13, color: '#666' }}>الإجمالي: {total}</span>
-          <button className="btn btn-outline btn-sm" onClick={fetchCalls}>
+          <button className="btn btn-outline btn-sm" onClick={async () => {
+            try { await fetch('/api/sync', { method: 'POST', headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` } }); } catch(e) {}
+            fetchCalls();
+          }}>
             <FiRefreshCw size={14} /> تحديث
           </button>
         </div>
