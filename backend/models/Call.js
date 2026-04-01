@@ -137,7 +137,7 @@ const Call = sequelize.define('Call', {
     { fields: ['last_call_at'] },
     { fields: ['queue_name'] },
     { fields: ['last_call_status'] },
-    { unique: true, fields: ['caller_number', 'queue_name'], name: 'unique_caller_per_queue' }
+    { unique: true, fields: ['caller_number'], name: 'unique_caller_number' }
   ]
 });
 
