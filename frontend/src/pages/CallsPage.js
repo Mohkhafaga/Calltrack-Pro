@@ -113,7 +113,9 @@ const CallsPage = () => {
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
-    return d.toLocaleDateString('ar-SA') + ' ' + d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+    const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    return `${date} ${time}`;
   };
 
   const getStatusBadge = (s) => {
@@ -152,7 +154,7 @@ const CallsPage = () => {
   };
 
   const handleCall = (number) => {
-    window.open(`https://ossos.3cx.cloud/webclient/#/people/phonedialog/${number}`, '_blank');
+    window.open(`https://ososenjaz.3cx.asia/#/people/phonedialog/${number}`, '_blank');
   };
 
   return (
@@ -271,7 +273,7 @@ const CallsPage = () => {
                             <button className="btn btn-outline btn-sm" onClick={() => setSelectedCall(call)} title="تفاصيل">
                               <FiEye size={12} />
                             </button>
-                            {call.followUpStatus === 'pending' && (
+                            {(call.followUpStatus === 'pending' || call.followUpStatus === 'retry_later' || call.followUpStatus === 'callback_done_no_answer') && (
                               <button className="btn btn-warning btn-sm" onClick={() => handleLock(call)} title="جاري المتابعة">
                                 <FiLock size={12} />
                               </button>
@@ -302,7 +304,7 @@ const CallsPage = () => {
       </div>
 
       {selectedCall && (
-        <CallDetailModal call={selectedCall} onClose={() => setSelectedCall(null)} onUpdate={fetchCalls} />
+        <CallDetailModal call={selectedCall} onClose={() => setSelectedCall(null)} onUpdate={fetchCalls} currentUser={user} />
       )}
 
       {followUpCall && (
